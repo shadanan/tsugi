@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 
-import { IconGitPullRequest, IconFileUnknown } from "@tabler/icons-react";
 import { listen } from "@tauri-apps/api/event";
+import { TaskIcon } from "./TaskIcon";
 
 interface Task {
   id: string;
@@ -27,14 +27,6 @@ function App() {
     })();
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      const unlisten = await listen("tasks", (payload: any) => {
-        console.log(payload);
-      });
-    })();
-  }, []);
-
   return (
     <table>
       <thead>
@@ -51,14 +43,12 @@ function App() {
           tasks.map((task: any) => (
             <tr key={task.id}>
               <td>
-                <a href={task.url}>{task.title}</a>
+                <a href={task.url} target="_blank">
+                  {task.title}
+                </a>
               </td>
               <td>
-                {task.kind === "github-pull-request-review" ? (
-                  <IconGitPullRequest />
-                ) : (
-                  <IconFileUnknown />
-                )}
+                <TaskIcon kind={task.kind} />
               </td>
               <td>{task.created_at}</td>
               <td>{task.requestor}</td>

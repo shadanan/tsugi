@@ -56,14 +56,14 @@ impl AuthenticatedGithubClient {
             let task = task::Task {
                 id: item["number"].as_i64().unwrap().to_string(),
                 kind: kind.clone(),
-                url: item["html_url"].as_str().unwrap().to_string(),
-                title: item["title"].as_str().unwrap().to_string(),
-                description: item["body"].as_str().unwrap().to_string(),
-                state: item["state"].as_str().unwrap().to_string(),
-                created_at: item["created_at"].as_str().unwrap().to_string(),
-                updated_at: item["updated_at"].as_str().unwrap().to_string(),
-                closed_at: item["closed_at"].as_str().unwrap().to_string(),
-                requestor: item["user"]["login"].as_str().unwrap().to_string(),
+                url: item["html_url"].as_str().unwrap_or("none").to_string(),
+                title: item["title"].as_str().unwrap_or("none").to_string(),
+                description: "description".to_string(),
+                state: item["state"].as_str().unwrap_or("none").to_string(),
+                created_at: item["created_at"].as_str().unwrap_or("none").to_string(),
+                updated_at: item["updated_at"].as_str().unwrap_or("none").to_string(),
+                closed_at: item["closed_at"].as_str().unwrap_or("none").to_string(),
+                requestor: item["user"]["login"].as_str().unwrap_or("none").to_string(),
             };
             tasks.push(task);
         }
