@@ -8,9 +8,10 @@ mod github;
 mod task;
 
 #[tauri::command]
-async fn get_tasks(client: tauri::State<'_, AuthenticatedGithubClient>) -> Result<String, String> {
-    let tasks = client.get_tasks().await;
-    Ok(serde_json::to_string(&tasks).unwrap())
+async fn get_tasks(
+    client: tauri::State<'_, AuthenticatedGithubClient>,
+) -> Result<Vec<task::Task>, String> {
+    Ok(client.get_tasks().await)
 }
 
 async fn init() -> AuthenticatedGithubClient {

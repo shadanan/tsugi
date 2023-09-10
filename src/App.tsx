@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
-
-import { listen } from "@tauri-apps/api/event";
 import { TaskIcon } from "./TaskIcon";
 
 interface Task {
@@ -22,7 +20,7 @@ function App() {
 
   useEffect(() => {
     (async () => {
-      const tasks: Task[] = JSON.parse(await invoke("get_tasks"));
+      const tasks: Task[] = await invoke("get_tasks");
       setTasks(tasks);
     })();
   }, []);
@@ -38,23 +36,20 @@ function App() {
         </tr>
       </thead>
       <tbody>
-        {
-          // iterate over tasks and render them
-          tasks.map((task: any) => (
-            <tr key={task.id}>
-              <td>
-                <a href={task.url} target="_blank">
-                  {task.title}
-                </a>
-              </td>
-              <td>
-                <TaskIcon kind={task.kind} />
-              </td>
-              <td>{task.created_at}</td>
-              <td>{task.requestor}</td>
-            </tr>
-          ))
-        }
+        {tasks.map((task: any) => (
+          <tr key={task.id}>
+            <td>
+              <a href={task.url} target="_blank">
+                {task.title}
+              </a>
+            </td>
+            <td>
+              <TaskIcon kind={task.kind} />
+            </td>
+            <td>{task.created_at}</td>
+            <td>{task.requestor}</td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );
