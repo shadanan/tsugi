@@ -1,6 +1,17 @@
-# Tauri + React + Typescript
+# Tsugi
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+A Tauri app that collects your TODOs from across the web and presents them in one place.
+
+## Integrations
+
+- GitHub Pull Requests
+- GitHub Pull Request Reviews
+
+## Running in Dev Mode
+
+```shell
+$ GITHUB_TOKEN=your_token cargo tauri dev
+```
 
 ## Recommended IDE Setup
 
