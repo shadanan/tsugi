@@ -10,9 +10,9 @@ interface TaskIconProps {
 
 export function TaskIcon({ kind }: TaskIconProps) {
   switch (kind) {
-    case "github-pull-request-reviewer":
+    case "GitHub PR Review":
       return <IconMessage />;
-    case "github-pull-request-author":
+    case "GitHub PR":
       return <IconGitPullRequest />;
     default:
       return <IconFileUnknown />;

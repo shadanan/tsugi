@@ -1,7 +1,8 @@
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Task {
-    pub id: String,
+    pub key: String,
     pub kind: String,
     pub url: String,
     pub title: String,
@@ -15,12 +16,9 @@ pub struct Task {
 
 // Serialize Task as JSON
 impl Serialize for Task {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut state = serializer.serialize_struct("Task", 10)?;
-        state.serialize_field("id", &self.id)?;
+        state.serialize_field("key", &self.key)?;
         state.serialize_field("kind", &self.kind)?;
         state.serialize_field("url", &self.url)?;
         state.serialize_field("title", &self.title)?;
@@ -31,5 +29,11 @@ impl Serialize for Task {
         state.serialize_field("closed_at", &self.closed_at)?;
         state.serialize_field("requestor", &self.requestor)?;
         state.end()
+    }
+}
+
+impl Task {
+    pub fn id(&self) -> String {
+        format!("{}/{}", self.kind, self.key)
     }
 }

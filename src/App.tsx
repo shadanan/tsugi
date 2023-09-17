@@ -3,8 +3,8 @@ import { invoke } from "@tauri-apps/api/tauri";
 import { TaskIcon } from "./TaskIcon";
 
 interface Task {
-  id: string;
   kind: string;
+  key: string;
   url: string;
   title: string;
   description: string;
@@ -15,14 +15,23 @@ interface Task {
   requestor: string;
 }
 
+function id(task: Task): string {
+  return `${task.kind}/${task.key}`;
+}
+
 function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
+  const updateTasks = async () => {
+    const tasks: Task[] = await invoke("get_tasks");
+    console.log(tasks);
+    setTasks(tasks);
+  };
+
   useEffect(() => {
-    (async () => {
-      const tasks: Task[] = await invoke("get_tasks");
-      setTasks(tasks);
-    })();
+    const id = setInterval(updateTasks, 10000);
+    updateTasks();
+    return () => clearInterval(id);
   }, []);
 
   return (
@@ -36,8 +45,8 @@ function App() {
         </tr>
       </thead>
       <tbody>
-        {tasks.map((task: any) => (
-          <tr key={task.id}>
+        {tasks.map((task: Task) => (
+          <tr key={id(task)}>
             <td>
               <a href={task.url} target="_blank">
                 {task.title}
