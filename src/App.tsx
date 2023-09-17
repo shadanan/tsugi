@@ -3,7 +3,8 @@ import { invoke } from "@tauri-apps/api/tauri";
 import { TaskIcon } from "./TaskIcon";
 
 interface Task {
-  id: string;
+  kind: string;
+  key: string;
   url: string;
   title: string;
   description: string;
@@ -14,8 +15,8 @@ interface Task {
   requestor: string;
 }
 
-function kind(task: Task): string {
-  return task.id.split("/")[0];
+function id(task: Task): string {
+  return `${task.kind}/${task.key}`;
 }
 
 function App() {
@@ -45,14 +46,14 @@ function App() {
       </thead>
       <tbody>
         {tasks.map((task: Task) => (
-          <tr key={task.id}>
+          <tr key={id(task)}>
             <td>
               <a href={task.url} target="_blank">
                 {task.title}
               </a>
             </td>
             <td>
-              <TaskIcon kind={kind(task)} />
+              <TaskIcon kind={task.kind} />
             </td>
             <td>{task.created_at}</td>
             <td>{task.requestor}</td>

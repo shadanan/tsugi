@@ -51,12 +51,12 @@ impl AuthenticatedGithubClient {
         let mut tasks = Vec::new();
 
         let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
-        println!("{json}");
 
         for item in json["items"].as_array().unwrap() {
             let task_id = item["number"].as_i64().unwrap().to_string();
             let task = task::Task {
-                id: format!("{kind}/{task_id}"),
+                key: task_id,
+                kind: kind.clone(),
                 url: item["html_url"].as_str().unwrap_or("none").to_string(),
                 title: item["title"].as_str().unwrap_or("none").to_string(),
                 description: "description".to_string(),
@@ -78,7 +78,7 @@ impl AuthenticatedGithubClient {
                 "is:pr+is:open+archived:false+review-requested:{user}",
                 user = self.user
             ),
-            "github-pull-request-reviewer".to_string(),
+            "GitHub PR Review".to_string(),
         );
 
         let myprs = self.get_search_issues(
@@ -86,7 +86,7 @@ impl AuthenticatedGithubClient {
                 "is:pr+is:open+archived:false+author:{user}",
                 user = self.user
             ),
-            "github-pull-request-author".to_string(),
+            "GitHub PR".to_string(),
         );
 
         let (reviews, myprs) = join!(reviews, myprs);

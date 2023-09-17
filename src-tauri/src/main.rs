@@ -1,9 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::collections::HashSet;
-
 use crate::github::AuthenticatedGithubClient;
+use std::{collections::HashSet, sync::Mutex};
+use tauri::api::notification::Notification;
 use tauri::async_runtime::block_on;
 
 mod github;
@@ -11,24 +11,33 @@ mod task;
 
 #[tauri::command]
 async fn get_tasks(
+    app: tauri::AppHandle,
     client: tauri::State<'_, AuthenticatedGithubClient>,
-    previous_task_ids: tauri::State<'_, HashSet<String>>,
+    previous_task_ids: tauri::State<'_, Mutex<HashSet<String>>>,
 ) -> Result<Vec<task::Task>, String> {
-    let new_tasks = client.get_tasks().await;
-    let new_task_ids = new_tasks
+    let current_tasks = client.get_tasks().await;
+    let new_task_ids = current_tasks
         .iter()
-        .map(|t| &t.id)
-        .cloned()
+        .map(|t| t.id())
         .collect::<HashSet<_>>()
-        .difference(&previous_task_ids)
+        .difference(&previous_task_ids.lock().unwrap())
         .cloned()
         .collect::<HashSet<_>>();
-    // Log the new task IDs
-    for id in new_task_ids.iter() {
-        println!("New task: {id}");
-    }
+    let identifier = &app.config().tauri.bundle.identifier;
+    current_tasks.iter().for_each(|t| {
+        if new_task_ids.contains(&t.id()) {
+            let result = Notification::new(identifier)
+                .title(format!("New {}", t.kind))
+                .body(&t.title)
+                .show();
+            if let Err(e) = result {
+                println!("Error showing notification: {:?}", e);
+            }
+        }
+    });
+    previous_task_ids.lock().unwrap().extend(new_task_ids);
 
-    Ok(new_tasks)
+    Ok(current_tasks)
 }
 
 async fn init() -> AuthenticatedGithubClient {
@@ -37,7 +46,7 @@ async fn init() -> AuthenticatedGithubClient {
 
 fn main() {
     let client = block_on(init());
-    let previous_task_ids: HashSet<String> = HashSet::new();
+    let previous_task_ids: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
     tauri::Builder::default()
         .manage(client)
         .manage(previous_task_ids)
