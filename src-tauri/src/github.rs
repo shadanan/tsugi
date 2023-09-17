@@ -51,11 +51,12 @@ impl AuthenticatedGithubClient {
         let mut tasks = Vec::new();
 
         let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        println!("{json}");
 
         for item in json["items"].as_array().unwrap() {
+            let task_id = item["number"].as_i64().unwrap().to_string();
             let task = task::Task {
-                id: item["number"].as_i64().unwrap().to_string(),
-                kind: kind.clone(),
+                id: format!("{kind}/{task_id}"),
                 url: item["html_url"].as_str().unwrap_or("none").to_string(),
                 title: item["title"].as_str().unwrap_or("none").to_string(),
                 description: "description".to_string(),
