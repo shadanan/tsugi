@@ -11,6 +11,12 @@ dependencies:
   '@tauri-apps/api':
     specifier: ^1.4.0
     version: 1.4.0
+  ag-grid-community:
+    specifier: ^30.1.0
+    version: 30.1.0
+  ag-grid-react:
+    specifier: ^30.1.0
+    version: 30.1.0(ag-grid-community@30.1.0)(react-dom@18.2.0)(react@18.2.0)
   react:
     specifier: ^18.2.0
     version: 18.2.0
@@ -654,6 +660,23 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: true
+
+  /ag-grid-community@30.1.0:
+    resolution: {integrity: sha512-D69e63CUALxfgLZSu1rXC8Xiyhu6+17zxzTV8cWsyvt5GeSDv2frQ3BKOqGZbUfVoOCLv2SQoHVTTqw8OjxavA==}
+    dev: false
+
+  /ag-grid-react@30.1.0(ag-grid-community@30.1.0)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-qnJAWe2yN4fjnFYiyzQu6S3EX0rZVvrZbkTEXVEy55pufTkcmimvCtKSV1aVxGg+TeZFJBw0gkXfXW4aMwTh4Q==}
+    peerDependencies:
+      ag-grid-community: ~30.1.0
+      react: ^16.3.0 || ^17.0.0 || ^18.0.0
+      react-dom: ^16.3.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      ag-grid-community: 30.1.0
+      prop-types: 15.8.1
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+    dev: false
 
   /ansi-styles@3.2.1:
     resolution: {integrity: sha512-VT0ZI6kZRdTh8YyJw3SMbYm/u+NqfsAxEpWO0Pf9sq8/e94WxxOpPKx9FR1FlyCtOVDNOQ+8ntlqFxiRc+r5qA==}

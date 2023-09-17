@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { TaskIcon } from "./TaskIcon";
+import { AgGridReact } from "ag-grid-react";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
 
 interface Task {
   kind: string;
@@ -21,6 +24,12 @@ function id(task: Task): string {
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [columnDefs, setColumnDefs] = useState<any[]>([
+    { headerName: "Title", field: "title" },
+    { headerName: "Kind", field: "kind" },
+    { headerName: "Date", field: "created_at" },
+    { headerName: "Requestor", field: "requestor" },
+  ]);
 
   const updateTasks = async () => {
     const tasks: Task[] = await invoke("get_tasks");
@@ -35,32 +44,33 @@ function App() {
   }, []);
 
   return (
-    <table>
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Kind</th>
-          <th>Date</th>
-          <th>Requestor</th>
-        </tr>
-      </thead>
-      <tbody>
-        {tasks.map((task: Task) => (
-          <tr key={id(task)}>
-            <td>
-              <a href={task.url} target="_blank">
-                {task.title}
-              </a>
-            </td>
-            <td>
-              <TaskIcon kind={task.kind} />
-            </td>
-            <td>{task.created_at}</td>
-            <td>{task.requestor}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <AgGridReact rowData={tasks} columnDefs={columnDefs} />
+    // <table>
+    //   <thead>
+    //     <tr>
+    //       <th>Title</th>
+    //       <th>Kind</th>
+    //       <th>Date</th>
+    //       <th>Requestor</th>
+    //     </tr>
+    //   </thead>
+    //   <tbody>
+    //     {tasks.map((task: Task) => (
+    //       <tr key={id(task)}>
+    //         <td>
+    //           <a href={task.url} target="_blank">
+    //             {task.title}
+    //           </a>
+    //         </td>
+    //         <td>
+    //           <TaskIcon kind={task.kind} />
+    //         </td>
+    //         <td>{task.created_at}</td>
+    //         <td>{task.requestor}</td>
+    //       </tr>
+    //     ))}
+    //   </tbody>
+    // </table>
   );
 }
 

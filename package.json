@@ -12,6 +12,8 @@
   "dependencies": {
     "@tabler/icons-react": "^2.32.0",
     "@tauri-apps/api": "^1.4.0",
+    "ag-grid-community": "^30.1.0",
+    "ag-grid-react": "^30.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
