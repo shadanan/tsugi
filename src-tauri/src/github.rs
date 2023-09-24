@@ -1,5 +1,7 @@
 use crate::error::TsugiError;
-use crate::task;
+use crate::plugin::Plugin;
+use crate::task::Task;
+use async_trait::async_trait;
 
 const USER_AGENT: &str = "tsugi - https://github.com/shadanan/tsugi";
 
@@ -9,7 +11,7 @@ pub struct AuthenticatedGithubClient {
     user: String,
 }
 
-pub async fn init() -> AuthenticatedGithubClient {
+pub async fn init() -> Box<dyn Plugin> {
     let client = reqwest::Client::new();
 
     let token = std::env::var("GITHUB_TOKEN").unwrap();
@@ -27,11 +29,13 @@ pub async fn init() -> AuthenticatedGithubClient {
     let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
     let user = json["login"].as_str().unwrap().to_string();
 
-    AuthenticatedGithubClient {
+    let client = AuthenticatedGithubClient {
         client,
         token,
         user,
-    }
+    };
+
+    Box::new(client)
 }
 
 impl AuthenticatedGithubClient {
@@ -39,7 +43,7 @@ impl AuthenticatedGithubClient {
         &self,
         query: String,
         kind: String,
-    ) -> Result<Vec<task::Task>, TsugiError> {
+    ) -> Result<Vec<Task>, TsugiError> {
         let resp = self
             .client
             .get(format!("https://api.github.com/search/issues?q={query}"))
@@ -62,7 +66,7 @@ impl AuthenticatedGithubClient {
                     continue;
                 }
             };
-            let task = task::Task {
+            let task = Task {
                 key: task_id,
                 kind: kind.clone(),
                 url: item["html_url"].as_str().unwrap_or("none").to_string(),
@@ -79,8 +83,11 @@ impl AuthenticatedGithubClient {
 
         Ok(tasks)
     }
+}
 
-    pub async fn get_tasks(&self) -> Result<Vec<task::Task>, TsugiError> {
+#[async_trait]
+impl Plugin for AuthenticatedGithubClient {
+    async fn get_tasks(&self) -> Result<Vec<Task>, TsugiError> {
         let reviews = self
             .get_search_issues(
                 format!(
