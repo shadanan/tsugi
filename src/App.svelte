@@ -3,11 +3,11 @@
   import { onMount } from "svelte";
   import Tasks from "./Tasks.svelte";
 
-  let tasks: Task[] = [];
+  let getTasksResponse: GetTasksResponse = { plugins: [], tasks: [] };
 
   async function updateTasks() {
-    tasks = await invoke("get_tasks");
-    console.log(tasks);
+    getTasksResponse = await invoke("get_tasks");
+    console.log(getTasksResponse);
   }
 
   onMount(() => {
@@ -18,5 +18,5 @@
 </script>
 
 <div>
-  <Tasks {tasks} />
+  <Tasks {getTasksResponse} />
 </div>

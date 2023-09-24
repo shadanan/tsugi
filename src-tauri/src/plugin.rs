@@ -4,5 +4,6 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait Plugin: Send + Sync + 'static {
-    async fn get_tasks(&self) -> Result<Vec<Task>, TsugiError>;
+    fn name(&self) -> String;
+    async fn tasks(&self) -> Result<Vec<Task>, TsugiError>;
 }

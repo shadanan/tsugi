@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let tasks: Task[] = [];
+  export let getTasksResponse: GetTasksResponse = { plugins: [], tasks: [] };
 </script>
 
 <table class="tasks">
@@ -12,7 +12,7 @@
     </tr>
   </thead>
   <tbody>
-    {#each tasks as task}
+    {#each getTasksResponse.tasks as task}
       <tr>
         <td>
           <a href={task.url} target="_blank">

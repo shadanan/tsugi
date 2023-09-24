@@ -10,3 +10,14 @@ interface Task {
   closed_at: string;
   requestor: string;
 }
+
+interface PluginStatus {
+  name: string;
+  status: string;
+  message: string;
+}
+
+interface GetTasksResponse {
+  plugins: PluginStatus[];
+  tasks: Task[];
+}

@@ -1,0 +1,13 @@
+{
+  "plugins": [
+    {
+      "name": "plugin1",
+      "status": "running"
+    },
+    {
+      "name": "plugin2",
+      "status": "stopped"
+    }
+  ],
+  "tasks": []
+}

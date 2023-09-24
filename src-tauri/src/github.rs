@@ -87,7 +87,11 @@ impl AuthenticatedGithubClient {
 
 #[async_trait]
 impl Plugin for AuthenticatedGithubClient {
-    async fn get_tasks(&self) -> Result<Vec<Task>, TsugiError> {
+    fn name(&self) -> String {
+        "GitHub".to_string()
+    }
+
+    async fn tasks(&self) -> Result<Vec<Task>, TsugiError> {
         let reviews = self
             .get_search_issues(
                 format!(

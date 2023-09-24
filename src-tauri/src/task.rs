@@ -14,7 +14,6 @@ pub struct Task {
     pub requestor: String,
 }
 
-// Serialize Task as JSON
 impl Serialize for Task {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut state = serializer.serialize_struct("Task", 10)?;
@@ -35,5 +34,37 @@ impl Serialize for Task {
 impl Task {
     pub fn id(&self) -> String {
         format!("{}/{}", self.kind, self.key)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct PluginStatus {
+    pub name: String,
+    pub status: String,
+    pub message: String,
+}
+
+impl Serialize for PluginStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut state = serializer.serialize_struct("PluginStatus", 3)?;
+        state.serialize_field("name", &self.name)?;
+        state.serialize_field("status", &self.status)?;
+        state.serialize_field("message", &self.message)?;
+        state.end()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct GetTasksResponse {
+    pub plugins: Vec<PluginStatus>,
+    pub tasks: Vec<Task>,
+}
+
+impl Serialize for GetTasksResponse {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut state = serializer.serialize_struct("GetTasksResponse", 2)?;
+        state.serialize_field("plugins", &self.plugins)?;
+        state.serialize_field("tasks", &self.tasks)?;
+        state.end()
     }
 }
