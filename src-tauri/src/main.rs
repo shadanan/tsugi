@@ -1,11 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use crate::error::TsugiError;
 use crate::github::AuthenticatedGithubClient;
 use std::{collections::HashSet, sync::Mutex};
 use tauri::api::notification::Notification;
 use tauri::async_runtime::block_on;
 
+mod error;
 mod github;
 mod task;
 
@@ -14,8 +16,8 @@ async fn get_tasks(
     app: tauri::AppHandle,
     client: tauri::State<'_, AuthenticatedGithubClient>,
     previous_task_ids: tauri::State<'_, Mutex<HashSet<String>>>,
-) -> Result<Vec<task::Task>, String> {
-    let current_tasks = client.get_tasks().await;
+) -> Result<Vec<task::Task>, TsugiError> {
+    let current_tasks = client.get_tasks().await?;
     let new_task_ids = current_tasks
         .iter()
         .map(|t| t.id())
