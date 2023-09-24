@@ -1,22 +1,24 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod error;
+mod github;
+mod plugin;
+mod task;
+
 use crate::error::TsugiError;
-use crate::github::AuthenticatedGithubClient;
+use crate::plugin::Plugin;
+use crate::task::Task;
 use std::{collections::HashSet, sync::Mutex};
 use tauri::api::notification::Notification;
 use tauri::async_runtime::block_on;
 
-mod error;
-mod github;
-mod task;
-
 #[tauri::command]
 async fn get_tasks(
     app: tauri::AppHandle,
-    client: tauri::State<'_, AuthenticatedGithubClient>,
+    client: tauri::State<'_, Box<dyn Plugin>>,
     previous_task_ids: tauri::State<'_, Mutex<HashSet<String>>>,
-) -> Result<Vec<task::Task>, TsugiError> {
+) -> Result<Vec<Task>, TsugiError> {
     let current_tasks = client.get_tasks().await?;
     let new_task_ids = current_tasks
         .iter()
@@ -42,12 +44,9 @@ async fn get_tasks(
     Ok(current_tasks)
 }
 
-async fn init() -> AuthenticatedGithubClient {
-    github::init().await
-}
-
 fn main() {
-    let client = block_on(init());
+    let client = block_on(github::init());
+
     let previous_task_ids: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
     tauri::Builder::default()
         .manage(client)
