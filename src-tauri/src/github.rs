@@ -1,5 +1,5 @@
+use crate::error::TsugiError;
 use crate::task;
-use futures::join;
 
 const USER_AGENT: &str = "tsugi - https://github.com/shadanan/tsugi";
 
@@ -35,25 +35,33 @@ pub async fn init() -> AuthenticatedGithubClient {
 }
 
 impl AuthenticatedGithubClient {
-    async fn get_search_issues(&self, query: String, kind: String) -> Vec<task::Task> {
+    async fn get_search_issues(
+        &self,
+        query: String,
+        kind: String,
+    ) -> Result<Vec<task::Task>, TsugiError> {
         let resp = self
             .client
             .get(format!("https://api.github.com/search/issues?q={query}"))
             .header("User-Agent", USER_AGENT)
             .bearer_auth(&self.token)
             .send()
-            .await
-            .unwrap()
+            .await?
             .text()
-            .await
-            .unwrap();
+            .await?;
 
         let mut tasks = Vec::new();
 
-        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&resp)?;
 
-        for item in json["items"].as_array().unwrap() {
-            let task_id = item["number"].as_i64().unwrap().to_string();
+        for item in json["items"].as_array().unwrap_or(&Vec::new()) {
+            let task_id = match item["number"].as_i64() {
+                Some(number) => number.to_string(),
+                None => {
+                    eprintln!("Error: Failed to get task number");
+                    continue;
+                }
+            };
             let task = task::Task {
                 key: task_id,
                 kind: kind.clone(),
@@ -69,31 +77,34 @@ impl AuthenticatedGithubClient {
             tasks.push(task);
         }
 
-        tasks
+        Ok(tasks)
     }
 
-    pub async fn get_tasks(&self) -> Vec<task::Task> {
-        let reviews = self.get_search_issues(
-            format!(
-                "is:pr+is:open+archived:false+review-requested:{user}",
-                user = self.user
-            ),
-            "GitHub PR Review".to_string(),
-        );
+    pub async fn get_tasks(&self) -> Result<Vec<task::Task>, TsugiError> {
+        let reviews = self
+            .get_search_issues(
+                format!(
+                    "is:pr+is:open+archived:false+review-requested:{user}",
+                    user = self.user
+                ),
+                "GitHub PR Review".to_string(),
+            )
+            .await?;
 
-        let myprs = self.get_search_issues(
-            format!(
-                "is:pr+is:open+archived:false+author:{user}",
-                user = self.user
-            ),
-            "GitHub PR".to_string(),
-        );
+        let myprs = self
+            .get_search_issues(
+                format!(
+                    "is:pr+is:open+archived:false+author:{user}",
+                    user = self.user
+                ),
+                "GitHub PR".to_string(),
+            )
+            .await?;
 
-        let (reviews, myprs) = join!(reviews, myprs);
         let mut tasks = Vec::new();
         tasks.extend(reviews);
         tasks.extend(myprs);
 
-        tasks
+        Ok(tasks)
     }
 }
