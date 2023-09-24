@@ -17,6 +17,7 @@ use tauri::async_runtime::block_on;
 async fn collect_results(plugins: &Vec<Box<dyn Plugin>>) -> GetTasksResponse {
     let mut tasks: Vec<Task> = Vec::new();
     let mut plugin_statuses: Vec<PluginStatus> = Vec::new();
+    // TODO: Run all plugins in parallel
     for plugin in plugins {
         let result = plugin.tasks().await;
         match result {
