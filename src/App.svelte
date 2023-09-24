@@ -4,7 +4,6 @@
   import Tasks from "./Tasks.svelte";
 
   let getTasksResponse: GetTasksResponse = { plugins: [], tasks: [] };
-  let tasks = getTasksResponse.tasks;
 
   async function updateTasks() {
     getTasksResponse = await invoke("get_tasks");
@@ -19,5 +18,5 @@
 </script>
 
 <div>
-  <Tasks {tasks} />
+  <Tasks {getTasksResponse} />
 </div>

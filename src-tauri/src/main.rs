@@ -18,19 +18,19 @@ async fn collect_results(plugins: &Vec<Box<dyn Plugin>>) -> GetTasksResponse {
     let mut tasks: Vec<Task> = Vec::new();
     let mut plugin_statuses: Vec<PluginStatus> = Vec::new();
     for plugin in plugins {
-        let result = plugin.get_tasks().await;
+        let result = plugin.tasks().await;
         match result {
             Ok(plugin_tasks) => {
                 tasks.extend(plugin_tasks);
                 plugin_statuses.push(PluginStatus {
-                    name: "plugin".to_string(),
+                    name: plugin.name(),
                     status: "ok".to_string(),
                     message: "".to_string(),
                 });
             }
             Err(e) => {
                 plugin_statuses.push(PluginStatus {
-                    name: "plugin".to_string(),
+                    name: plugin.name(),
                     status: "error".to_string(),
                     message: format!("{:?}", e),
                 });
