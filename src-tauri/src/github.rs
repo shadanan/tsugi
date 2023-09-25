@@ -1,49 +1,44 @@
 use crate::error::TsugiError;
 use crate::plugin::Plugin;
-use crate::task::Task;
+use crate::task::PluginTask;
 use async_trait::async_trait;
 
 const USER_AGENT: &str = "tsugi - https://github.com/shadanan/tsugi";
 
+#[derive(Clone)]
 pub struct AuthenticatedGithubClient {
     client: reqwest::Client,
     token: String,
     user: String,
 }
 
-pub async fn init() -> Box<dyn Plugin> {
-    let client = reqwest::Client::new();
-
-    let token = std::env::var("GITHUB_TOKEN").unwrap();
-
-    let resp = client
-        .get("https://api.github.com/user")
-        .header("User-Agent", USER_AGENT)
-        .bearer_auth(&token)
-        .send()
-        .await
-        .unwrap()
-        .text()
-        .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
-    let user = json["login"].as_str().unwrap().to_string();
-
-    let client = AuthenticatedGithubClient {
-        client,
-        token,
-        user,
-    };
-
-    Box::new(client)
-}
-
 impl AuthenticatedGithubClient {
-    async fn get_search_issues(
-        &self,
-        query: String,
-        kind: String,
-    ) -> Result<Vec<Task>, TsugiError> {
+    pub async fn new() -> Self {
+        let client = reqwest::Client::new();
+
+        let token = std::env::var("GITHUB_TOKEN").unwrap();
+
+        let resp = client
+            .get("https://api.github.com/user")
+            .header("User-Agent", USER_AGENT)
+            .bearer_auth(&token)
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        let user = json["login"].as_str().unwrap().to_string();
+
+        Self {
+            client,
+            token,
+            user,
+        }
+    }
+
+    pub async fn get_search_issues(&self, query: String) -> Result<Vec<PluginTask>, TsugiError> {
         let resp = self
             .client
             .get(format!("https://api.github.com/search/issues?q={query}"))
@@ -66,9 +61,8 @@ impl AuthenticatedGithubClient {
                     continue;
                 }
             };
-            let task = Task {
+            let task = PluginTask {
                 key: task_id,
-                kind: kind.clone(),
                 url: item["html_url"].as_str().unwrap_or("none").to_string(),
                 title: item["title"].as_str().unwrap_or("none").to_string(),
                 description: "description".to_string(),
@@ -85,37 +79,58 @@ impl AuthenticatedGithubClient {
     }
 }
 
+pub struct GitHubPrReviewPlugin {
+    client: AuthenticatedGithubClient,
+}
+
+impl GitHubPrReviewPlugin {
+    pub fn new(client: &AuthenticatedGithubClient) -> Box<dyn Plugin> {
+        Box::new(Self {
+            client: client.clone(),
+        })
+    }
+}
+
 #[async_trait]
-impl Plugin for AuthenticatedGithubClient {
+impl Plugin for GitHubPrReviewPlugin {
     fn name(&self) -> String {
-        "GitHub".to_string()
+        "GitHub PR Review".to_string()
     }
 
-    async fn tasks(&self) -> Result<Vec<Task>, TsugiError> {
-        let reviews = self
-            .get_search_issues(
-                format!(
-                    "is:pr+is:open+archived:false+review-requested:{user}",
-                    user = self.user
-                ),
-                "GitHub PR Review".to_string(),
-            )
-            .await?;
+    async fn tasks(&self) -> Result<Vec<PluginTask>, TsugiError> {
+        self.client
+            .get_search_issues(format!(
+                "is:pr+is:open+archived:false+review-requested:{user}",
+                user = self.client.user
+            ))
+            .await
+    }
+}
 
-        let myprs = self
-            .get_search_issues(
-                format!(
-                    "is:pr+is:open+archived:false+author:{user}",
-                    user = self.user
-                ),
-                "GitHub PR".to_string(),
-            )
-            .await?;
+pub struct GitHubPrAuthorPlugin {
+    client: AuthenticatedGithubClient,
+}
 
-        let mut tasks = Vec::new();
-        tasks.extend(reviews);
-        tasks.extend(myprs);
+impl GitHubPrAuthorPlugin {
+    pub fn new(client: &AuthenticatedGithubClient) -> Box<dyn Plugin> {
+        Box::new(Self {
+            client: client.clone(),
+        })
+    }
+}
 
-        Ok(tasks)
+#[async_trait]
+impl Plugin for GitHubPrAuthorPlugin {
+    fn name(&self) -> String {
+        "GitHub PR Author".to_string()
+    }
+
+    async fn tasks(&self) -> Result<Vec<PluginTask>, TsugiError> {
+        self.client
+            .get_search_issues(format!(
+                "is:pr+is:open+archived:false+author:{user}",
+                user = self.client.user
+            ))
+            .await
     }
 }

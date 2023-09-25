@@ -9,6 +9,7 @@ mod task;
 use crate::plugin::Plugin;
 use crate::task::Task;
 use error::TsugiError;
+use github::{AuthenticatedGithubClient, GitHubPrAuthorPlugin, GitHubPrReviewPlugin};
 use std::{collections::HashSet, sync::Mutex};
 use task::{GetTasksResponse, PluginStatus};
 use tauri::api::notification::Notification;
@@ -22,7 +23,9 @@ async fn collect_results(plugins: &Vec<Box<dyn Plugin>>) -> GetTasksResponse {
         let result = plugin.tasks().await;
         match result {
             Ok(plugin_tasks) => {
-                tasks.extend(plugin_tasks);
+                plugin_tasks.into_iter().for_each(|t| {
+                    tasks.push(Task::from(t, plugin.name()));
+                });
                 plugin_statuses.push(PluginStatus {
                     name: plugin.name(),
                     status: "ok".to_string(),
@@ -77,7 +80,11 @@ async fn get_tasks(
 }
 
 fn main() {
-    let plugins = vec![block_on(github::init())];
+    let client = block_on(AuthenticatedGithubClient::new());
+    let plugins = vec![
+        GitHubPrReviewPlugin::new(&client),
+        GitHubPrAuthorPlugin::new(&client),
+    ];
 
     let previous_task_ids: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
     tauri::Builder::default()
