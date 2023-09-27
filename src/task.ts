@@ -1,6 +1,6 @@
 interface Task {
+  id: string;
   kind: string;
-  key: string;
   url: string;
   title: string;
   description: string;
@@ -18,6 +18,6 @@ interface PluginStatus {
 }
 
 interface GetTasksResponse {
-  plugins: PluginStatus[];
+  statuses: PluginStatus[];
   tasks: Task[];
 }

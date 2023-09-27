@@ -17,23 +17,23 @@ use tauri::async_runtime::block_on;
 
 async fn collect_results(plugins: &Vec<Box<dyn Plugin>>) -> GetTasksResponse {
     let mut tasks: Vec<Task> = Vec::new();
-    let mut plugin_statuses: Vec<PluginStatus> = Vec::new();
+    let mut statuses: Vec<PluginStatus> = Vec::new();
     // TODO: Run all plugins in parallel
     for plugin in plugins {
         let result = plugin.tasks().await;
         match result {
             Ok(plugin_tasks) => {
                 plugin_tasks.into_iter().for_each(|t| {
-                    tasks.push(Task::from(t, plugin.name()));
+                    tasks.push(t.to(plugin.name()));
                 });
-                plugin_statuses.push(PluginStatus {
+                statuses.push(PluginStatus {
                     name: plugin.name(),
                     status: "ok".to_string(),
                     message: "".to_string(),
                 });
             }
             Err(e) => {
-                plugin_statuses.push(PluginStatus {
+                statuses.push(PluginStatus {
                     name: plugin.name(),
                     status: "error".to_string(),
                     message: format!("{:?}", e),
@@ -41,10 +41,7 @@ async fn collect_results(plugins: &Vec<Box<dyn Plugin>>) -> GetTasksResponse {
             }
         }
     }
-    GetTasksResponse {
-        plugins: plugin_statuses,
-        tasks,
-    }
+    GetTasksResponse { statuses, tasks }
 }
 
 #[tauri::command]
@@ -57,14 +54,14 @@ async fn get_tasks(
     let current_tasks = &results.tasks;
     let new_task_ids = current_tasks
         .iter()
-        .map(|t| t.id())
+        .map(|t| t.pk())
         .collect::<HashSet<_>>()
         .difference(&previous_task_ids.lock().unwrap())
         .cloned()
         .collect::<HashSet<_>>();
     let identifier = &app.config().tauri.bundle.identifier;
     current_tasks.iter().for_each(|t| {
-        if new_task_ids.contains(&t.id()) {
+        if new_task_ids.contains(&t.pk()) {
             let result = Notification::new(identifier)
                 .title(format!("New {}", t.kind))
                 .body(&t.title)
