@@ -1,5 +1,5 @@
 use crate::error::TsugiError;
-use crate::plugin::{Plugin, PluginTask};
+use crate::plugin::{Plugin, Task};
 use async_trait::async_trait;
 
 const USER_AGENT: &str = "tsugi - https://github.com/shadanan/tsugi";
@@ -37,7 +37,7 @@ impl AuthenticatedGithubClient {
         }
     }
 
-    pub async fn get_search_issues(&self, query: String) -> Result<Vec<PluginTask>, TsugiError> {
+    pub async fn get_search_issues(&self, query: String) -> Result<Vec<Task>, TsugiError> {
         let resp = self
             .client
             .get(format!("https://api.github.com/search/issues?q={query}"))
@@ -60,7 +60,7 @@ impl AuthenticatedGithubClient {
                     continue;
                 }
             };
-            let task = PluginTask {
+            let task = Task {
                 key: task_id,
                 url: item["html_url"].as_str().unwrap_or("none").to_string(),
                 title: item["title"].as_str().unwrap_or("none").to_string(),
@@ -96,7 +96,7 @@ impl Plugin for GitHubPrReviewPlugin {
         "GitHub PR Review".to_string()
     }
 
-    async fn tasks(&self) -> Result<Vec<PluginTask>, TsugiError> {
+    async fn tasks(&self) -> Result<Vec<Task>, TsugiError> {
         self.client
             .get_search_issues(format!(
                 "is:pr+is:open+archived:false+review-requested:{user}",
@@ -124,7 +124,7 @@ impl Plugin for GitHubPrAuthorPlugin {
         "GitHub PR Author".to_string()
     }
 
-    async fn tasks(&self) -> Result<Vec<PluginTask>, TsugiError> {
+    async fn tasks(&self) -> Result<Vec<Task>, TsugiError> {
         self.client
             .get_search_issues(format!(
                 "is:pr+is:open+archived:false+author:{user}",

@@ -1,8 +1,9 @@
-use crate::{error::TsugiError, task::Task};
+use crate::error::TsugiError;
+use crate::task;
 use async_trait::async_trait;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct PluginTask {
+pub struct Task {
     pub key: String,
     pub url: String,
     pub title: String,
@@ -14,9 +15,9 @@ pub struct PluginTask {
     pub requestor: String,
 }
 
-impl PluginTask {
-    pub fn to(self, kind: String) -> Task {
-        Task {
+impl Task {
+    pub fn to(self, kind: String) -> task::Task {
+        task::Task {
             key: self.key,
             kind,
             url: self.url,
@@ -34,5 +35,5 @@ impl PluginTask {
 #[async_trait]
 pub trait Plugin: Send + Sync + 'static {
     fn name(&self) -> String;
-    async fn tasks(&self) -> Result<Vec<PluginTask>, TsugiError>;
+    async fn tasks(&self) -> Result<Vec<Task>, TsugiError>;
 }
