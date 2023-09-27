@@ -18,6 +18,6 @@ interface PluginStatus {
 }
 
 interface GetTasksResponse {
-  plugins: PluginStatus[];
+  statuses: PluginStatus[];
   tasks: Task[];
 }

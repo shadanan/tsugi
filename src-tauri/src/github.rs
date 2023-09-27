@@ -1,6 +1,5 @@
 use crate::error::TsugiError;
-use crate::plugin::Plugin;
-use crate::task::PluginTask;
+use crate::plugin::{Plugin, PluginTask};
 use async_trait::async_trait;
 
 const USER_AGENT: &str = "tsugi - https://github.com/shadanan/tsugi";

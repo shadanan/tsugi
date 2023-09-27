@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let getTasksResponse: GetTasksResponse = { plugins: [], tasks: [] };
+  export let getTasksResponse: GetTasksResponse = { statuses: [], tasks: [] };
 </script>
 
 <table class="tasks">
