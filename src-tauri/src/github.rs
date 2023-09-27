@@ -61,7 +61,7 @@ impl AuthenticatedGithubClient {
                 }
             };
             let task = Task {
-                key: task_id,
+                id: task_id,
                 url: item["html_url"].as_str().unwrap_or("none").to_string(),
                 title: item["title"].as_str().unwrap_or("none").to_string(),
                 description: "description".to_string(),

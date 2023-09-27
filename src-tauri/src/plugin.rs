@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Task {
-    pub key: String,
+    pub id: String,
     pub url: String,
     pub title: String,
     pub description: String,
@@ -18,7 +18,7 @@ pub struct Task {
 impl Task {
     pub fn to(self, kind: String) -> task::Task {
         task::Task {
-            key: self.key,
+            id: self.id,
             kind,
             url: self.url,
             title: self.title,

@@ -54,14 +54,14 @@ async fn get_tasks(
     let current_tasks = &results.tasks;
     let new_task_ids = current_tasks
         .iter()
-        .map(|t| t.id())
+        .map(|t| t.pk())
         .collect::<HashSet<_>>()
         .difference(&previous_task_ids.lock().unwrap())
         .cloned()
         .collect::<HashSet<_>>();
     let identifier = &app.config().tauri.bundle.identifier;
     current_tasks.iter().for_each(|t| {
-        if new_task_ids.contains(&t.id()) {
+        if new_task_ids.contains(&t.pk()) {
             let result = Notification::new(identifier)
                 .title(format!("New {}", t.kind))
                 .body(&t.title)

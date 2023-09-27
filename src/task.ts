@@ -1,6 +1,6 @@
 interface Task {
+  id: string;
   kind: string;
-  key: string;
   url: string;
   title: string;
   description: string;
