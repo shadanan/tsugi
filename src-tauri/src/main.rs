@@ -4,18 +4,22 @@
 mod error;
 mod github;
 mod plugin;
+mod sqlite;
 mod task;
 
 use crate::plugin::Plugin;
 use crate::task::Task;
 use error::TsugiError;
 use github::{AuthenticatedGithubClient, GitHubPrAuthorPlugin, GitHubPrReviewPlugin};
+use sqlite::Sqlite;
+use std::fs;
 use std::{collections::HashSet, sync::Mutex};
 use task::{GetTasksResponse, PluginStatus};
 use tauri::api::notification::Notification;
 use tauri::async_runtime::block_on;
+use tauri::AppHandle;
 
-async fn collect_results(plugins: &Vec<Box<dyn Plugin>>) -> GetTasksResponse {
+async fn collect_results(app: &AppHandle, plugins: &Vec<Box<dyn Plugin>>) -> GetTasksResponse {
     let mut tasks: Vec<Task> = Vec::new();
     let mut statuses: Vec<PluginStatus> = Vec::new();
     // TODO: Run all plugins in parallel
@@ -31,6 +35,10 @@ async fn collect_results(plugins: &Vec<Box<dyn Plugin>>) -> GetTasksResponse {
                     status: "ok".to_string(),
                     message: "".to_string(),
                 });
+                let sqlite = Sqlite::new(&app).unwrap();
+                sqlite
+                    .update(plugin.name().as_str(), tasks.clone())
+                    .unwrap();
             }
             Err(e) => {
                 statuses.push(PluginStatus {
@@ -50,7 +58,7 @@ async fn get_tasks(
     plugins: tauri::State<'_, Vec<Box<dyn Plugin>>>,
     previous_task_ids: tauri::State<'_, Mutex<HashSet<String>>>,
 ) -> Result<GetTasksResponse, TsugiError> {
-    let results = collect_results(&plugins).await;
+    let results = collect_results(&app, &plugins).await;
     let current_tasks = &results.tasks;
     let new_task_ids = current_tasks
         .iter()
@@ -85,6 +93,11 @@ fn main() {
 
     let previous_task_ids: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
     tauri::Builder::default()
+        .setup(|app| {
+            let data_dir = app.path_resolver().app_local_data_dir().unwrap();
+            fs::create_dir_all(&data_dir)?;
+            Ok(())
+        })
         .manage(plugins)
         .manage(previous_task_ids)
         .invoke_handler(tauri::generate_handler![get_tasks])
