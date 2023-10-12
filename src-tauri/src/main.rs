@@ -4,41 +4,33 @@
 mod error;
 mod github;
 mod plugin;
-mod sqlite;
+mod storage;
 mod task;
 
 use crate::plugin::Plugin;
-use crate::task::Task;
 use error::TsugiError;
 use github::{AuthenticatedGithubClient, GitHubPrAuthorPlugin, GitHubPrReviewPlugin};
-use sqlite::Sqlite;
 use std::fs;
-use std::{collections::HashSet, sync::Mutex};
+use storage::Storage;
 use task::{GetTasksResponse, PluginStatus};
-use tauri::api::notification::Notification;
 use tauri::async_runtime::block_on;
-use tauri::AppHandle;
+use tauri::Manager;
 
-async fn collect_results(app: &AppHandle, plugins: &Vec<Box<dyn Plugin>>) -> GetTasksResponse {
-    let mut tasks: Vec<Task> = Vec::new();
+async fn update_tasks(storage: &Storage, plugin: &Box<dyn Plugin>) -> Result<(), TsugiError> {
+    storage.update(&plugin.name(), plugin.tasks().await?)
+}
+
+async fn collect_results(storage: &Storage, plugins: &Vec<Box<dyn Plugin>>) -> GetTasksResponse {
     let mut statuses: Vec<PluginStatus> = Vec::new();
     // TODO: Run all plugins in parallel
     for plugin in plugins {
-        let result = plugin.tasks().await;
-        match result {
-            Ok(plugin_tasks) => {
-                plugin_tasks.into_iter().for_each(|t| {
-                    tasks.push(t.to(plugin.name()));
-                });
+        match update_tasks(&storage, &plugin).await {
+            Ok(()) => {
                 statuses.push(PluginStatus {
                     name: plugin.name(),
                     status: "ok".to_string(),
                     message: "".to_string(),
                 });
-                let sqlite = Sqlite::new(&app).unwrap();
-                sqlite
-                    .update(plugin.name().as_str(), tasks.clone())
-                    .unwrap();
             }
             Err(e) => {
                 statuses.push(PluginStatus {
@@ -49,38 +41,28 @@ async fn collect_results(app: &AppHandle, plugins: &Vec<Box<dyn Plugin>>) -> Get
             }
         }
     }
+
+    let tasks = match storage.all_tasks() {
+        Ok(tasks) => tasks,
+        Err(e) => {
+            statuses.push(PluginStatus {
+                name: "storage".to_string(),
+                status: "error".to_string(),
+                message: format!("{:?}", e),
+            });
+            Vec::new()
+        }
+    };
+
     GetTasksResponse { statuses, tasks }
 }
 
 #[tauri::command]
 async fn get_tasks(
-    app: tauri::AppHandle,
     plugins: tauri::State<'_, Vec<Box<dyn Plugin>>>,
-    previous_task_ids: tauri::State<'_, Mutex<HashSet<String>>>,
+    storage: tauri::State<'_, Storage>,
 ) -> Result<GetTasksResponse, TsugiError> {
-    let results = collect_results(&app, &plugins).await;
-    let current_tasks = &results.tasks;
-    let new_task_ids = current_tasks
-        .iter()
-        .map(|t| t.pk())
-        .collect::<HashSet<_>>()
-        .difference(&previous_task_ids.lock().unwrap())
-        .cloned()
-        .collect::<HashSet<_>>();
-    let identifier = &app.config().tauri.bundle.identifier;
-    current_tasks.iter().for_each(|t| {
-        if new_task_ids.contains(&t.pk()) {
-            let result = Notification::new(identifier)
-                .title(format!("New {}", t.kind))
-                .body(&t.title)
-                .show();
-            if let Err(e) = result {
-                println!("Error showing notification: {:?}", e);
-            }
-        }
-    });
-    previous_task_ids.lock().unwrap().extend(new_task_ids);
-
+    let results = collect_results(&storage, &plugins).await;
     Ok(results)
 }
 
@@ -91,15 +73,16 @@ fn main() {
         GitHubPrAuthorPlugin::new(&client),
     ];
 
-    let previous_task_ids: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
     tauri::Builder::default()
         .setup(|app| {
             let data_dir = app.path_resolver().app_local_data_dir().unwrap();
             fs::create_dir_all(&data_dir)?;
+            let identifier = &app.config().tauri.bundle.identifier;
+            let storage = Storage::new(&data_dir, identifier)?;
+            app.manage(storage);
             Ok(())
         })
         .manage(plugins)
-        .manage(previous_task_ids)
         .invoke_handler(tauri::generate_handler![get_tasks])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
