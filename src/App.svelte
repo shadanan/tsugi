@@ -18,5 +18,5 @@
 </script>
 
 <div>
-  <Tasks {getTasksResponse} />
+  <Tasks tasks={getTasksResponse.tasks} />
 </div>

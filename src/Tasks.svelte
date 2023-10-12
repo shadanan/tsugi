@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let getTasksResponse: GetTasksResponse = { statuses: [], tasks: [] };
+  export let tasks: Task[] = [];
 </script>
 
 <table class="tasks">
@@ -12,9 +12,9 @@
     </tr>
   </thead>
   <tbody>
-    {#each getTasksResponse.tasks as task}
-      <tr>
-        <td>
+    {#each tasks as task}
+      <tr class={task.state}>
+        <td class={task.state}>
           <a href={task.url} target="_blank">
             {task.title}
           </a>
@@ -48,5 +48,13 @@
   .tasks td {
     padding: 0.5rem;
     border: 1px solid #666;
+  }
+
+  .tasks td.closed {
+    text-decoration: line-through;
+  }
+
+  .tasks tr.closed td {
+    filter: brightness(0.3);
   }
 </style>
