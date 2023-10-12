@@ -7,6 +7,13 @@ use std::{
 };
 use tauri::api::notification::Notification;
 
+const LIST_SQL: &str = "
+SELECT * 
+FROM tasks 
+ORDER BY 
+  state DESC,
+  created_at DESC";
+
 const OPEN_SQL: &str = "
 INSERT INTO tasks (
   id, 
@@ -79,7 +86,7 @@ impl Storage {
     pub fn all_tasks(&self) -> Result<Vec<task::Task>, TsugiError> {
         let conn = self.conn();
 
-        let mut stmt = conn.prepare("SELECT * FROM tasks")?;
+        let mut stmt = conn.prepare(LIST_SQL)?;
         let rows = stmt.query_map([], |row| {
             Ok(task::Task {
                 kind: row.get("kind")?,
