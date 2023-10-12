@@ -28,6 +28,15 @@ impl Serialize for TsugiError {
     }
 }
 
+impl From<std::io::Error> for TsugiError {
+    fn from(e: std::io::Error) -> Self {
+        TsugiError {
+            message: e.to_string(),
+            source: Some(Box::new(e)),
+        }
+    }
+}
+
 impl From<reqwest::Error> for TsugiError {
     fn from(e: reqwest::Error) -> Self {
         TsugiError {
@@ -39,6 +48,15 @@ impl From<reqwest::Error> for TsugiError {
 
 impl From<serde_json::Error> for TsugiError {
     fn from(e: serde_json::Error) -> Self {
+        TsugiError {
+            message: e.to_string(),
+            source: Some(Box::new(e)),
+        }
+    }
+}
+
+impl From<rusqlite::Error> for TsugiError {
+    fn from(e: rusqlite::Error) -> Self {
         TsugiError {
             message: e.to_string(),
             source: Some(Box::new(e)),

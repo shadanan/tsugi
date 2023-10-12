@@ -16,10 +16,10 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn to(self, kind: String) -> task::Task {
+    pub fn to(self, kind: &str) -> task::Task {
         task::Task {
             id: self.id,
-            kind,
+            kind: kind.to_string(),
             url: self.url,
             title: self.title,
             description: self.description,
