@@ -11,13 +11,6 @@ interface Task {
   requestor: string;
 }
 
-interface PluginStatus {
-  name: string;
-  status: string;
-  message: string;
-}
-
 interface GetTasksResponse {
-  statuses: PluginStatus[];
   tasks: Task[];
 }

@@ -15,14 +15,6 @@ pub struct Task {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
-pub struct PluginStatus {
-    pub name: String,
-    pub status: String,
-    pub message: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct GetTasksResponse {
-    pub statuses: Vec<PluginStatus>,
     pub tasks: Vec<Task>,
 }

@@ -3,9 +3,22 @@ use rusqlite::Connection;
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
-    sync::Mutex,
 };
-use tauri::api::notification::Notification;
+
+const SCHEMA_SQL: &str = "
+CREATE TABLE IF NOT EXISTS tasks (
+  kind TEXT NOT NULL,
+  id TEXT NOT NULL,
+  url TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  state TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  closed_at TEXT,
+  requestor TEXT,
+  PRIMARY KEY (kind, id)
+)";
 
 const LIST_SQL: &str = "
 SELECT * 
@@ -47,46 +60,23 @@ WHERE kind = ?
   AND id = ?";
 
 pub struct Storage {
-    conn: Mutex<Connection>,
-    identifier: String,
+    conn: Connection,
 }
 
 impl Storage {
-    pub fn new(app_local_data_dir: &PathBuf, identifier: &String) -> Result<Self, TsugiError> {
-        let conn = Connection::open(app_local_data_dir.join("tsugi.sqlite"))?;
+    pub fn new(data_dir: &PathBuf) -> Result<Self, TsugiError> {
+        let conn = Connection::open(data_dir.join("tsugi.sqlite"))?;
 
-        conn.execute(
-            "
-            CREATE TABLE IF NOT EXISTS tasks (
-                kind TEXT NOT NULL,
-                id TEXT NOT NULL,
-                url TEXT NOT NULL,
-                title TEXT NOT NULL,
-                description TEXT NOT NULL,
-                state TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                closed_at TEXT,
-                requestor TEXT,
-                PRIMARY KEY (kind, id)
-            )",
-            [],
-        )?;
-
-        Ok(Self {
-            conn: Mutex::new(conn),
-            identifier: identifier.clone(),
-        })
+        Ok(Self { conn })
     }
 
-    fn conn(&self) -> std::sync::MutexGuard<Connection> {
-        self.conn.lock().unwrap()
+    pub fn ensure_schema(self) -> Result<Self, TsugiError> {
+        self.conn.execute(SCHEMA_SQL, [])?;
+        Ok(self)
     }
 
     pub fn all_tasks(&self) -> Result<Vec<task::Task>, TsugiError> {
-        let conn = self.conn();
-
-        let mut stmt = conn.prepare(LIST_SQL)?;
+        let mut stmt = self.conn.prepare(LIST_SQL)?;
         let rows = stmt.query_map([], |row| {
             Ok(task::Task {
                 kind: row.get("kind")?,
@@ -109,8 +99,7 @@ impl Storage {
     }
 
     pub fn tasks(&self, kind: &str) -> Result<Vec<task::Task>, TsugiError> {
-        let conn = self.conn();
-        let mut stmt = conn.prepare("SELECT * FROM tasks WHERE kind = ?")?;
+        let mut stmt = self.conn.prepare("SELECT * FROM tasks WHERE kind = ?")?;
         let rows = stmt.query_map([kind], |row| {
             Ok(task::Task {
                 kind: row.get("kind")?,
@@ -132,7 +121,11 @@ impl Storage {
         Ok(tasks)
     }
 
-    pub fn update(&self, kind: &str, tasks: Vec<plugin::Task>) -> Result<(), TsugiError> {
+    pub fn update(
+        &self,
+        kind: &str,
+        tasks: Vec<plugin::Task>,
+    ) -> Result<HashSet<task::Task>, TsugiError> {
         let previous_tasks = self
             .tasks(kind)?
             .into_iter()
@@ -149,11 +142,11 @@ impl Storage {
             .chain(current_tasks.keys())
             .collect::<HashSet<_>>();
 
-        let conn = self.conn();
+        let mut open_stmt = self.conn.prepare(OPEN_SQL)?;
+        let mut update_stmt = self.conn.prepare(UPDATE_SQL)?;
+        let mut close_stmt = self.conn.prepare(CLOSE_SQL)?;
 
-        let mut open_stmt = conn.prepare(OPEN_SQL)?;
-        let mut update_stmt = conn.prepare(UPDATE_SQL)?;
-        let mut close_stmt = conn.prepare(CLOSE_SQL)?;
+        let mut new_tasks: HashSet<task::Task> = HashSet::new();
 
         for task_id in all_task_ids {
             let previous_task = previous_tasks.get(task_id);
@@ -193,21 +186,12 @@ impl Storage {
                         &current_task.requestor,
                     ))?;
 
-                    match Notification::new(&self.identifier)
-                        .title(format!("New {}", kind))
-                        .body(&current_task.title)
-                        .show()
-                    {
-                        Ok(_) => {}
-                        Err(e) => {
-                            println!("Failed to show notification: {:?}", e);
-                        }
-                    }
+                    new_tasks.insert(current_task.clone());
                 }
                 (None, None) => {}
             }
         }
 
-        Ok(())
+        Ok(new_tasks)
     }
 }

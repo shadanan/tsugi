@@ -3,7 +3,7 @@
   import { onMount } from "svelte";
   import Tasks from "./Tasks.svelte";
 
-  let getTasksResponse: GetTasksResponse = { statuses: [], tasks: [] };
+  let getTasksResponse: GetTasksResponse = { tasks: [] };
 
   async function updateTasks() {
     getTasksResponse = await invoke("get_tasks");
